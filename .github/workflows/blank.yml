@@ -1,0 +1,28 @@
+name: Test gouv.nc
+
+on:
+  push:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get validity metadata for opt.nc
+        id: domaine_nc
+        uses: opt-nc/domaine-nc-action@v1
+        with:
+          api-key: ${{ secrets.RAPID_API_KEY }}
+          name: gouv # gouv.nc
+
+      - name: Create an issue if the domain expires within the year
+        if: ${{ steps.domaine_nc.outputs.daysBeforeExpiration <= 365 }}
+        uses: actions/github-script@v5
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: ':warning: Domain `gouv.nc` is about to expire :warning:',
+              body: ':point_right: `gouv.nc` will expire on ${{ steps.meta.outputs.expirationDate }}',
+              labels: ['expired-domain']
+            });
